@@ -1,4 +1,6 @@
 # truffle-contract-schema
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/trufflesuite/truffle-contract-schema.svg)](https://greenkeeper.io/)
 JSON schema for contract artifacts
 
 # Schema
