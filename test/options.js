@@ -7,13 +7,13 @@ describe("options", function() {
       "x-from-dependency": "adder/Adder.sol"
     }
 
-    options = Schema.normalizeOptions(options);
+    options = Schema.normalizeInput(options);
     assert.equal(options["x-from-dependency"], "adder/Adder.sol");
 
-    options = Schema.generateBinary(options);
+    options = Schema.generateObject(options);
     assert.equal(options["x-from-dependency"], "adder/Adder.sol");
 
-    options = Schema.generateBinary(options, {"x-another-option": "exists"});
+    options = Schema.generateObject(options, {"x-another-option": "exists"});
     assert.equal(options["x-another-option"], "exists");
   });
 });
