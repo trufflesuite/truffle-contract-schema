@@ -38,7 +38,8 @@ var TruffleSchema = {
       "binary": "bytecode",
       "srcmap": "sourceMap",
       "srcmapRuntime": "deployedSourceMap",
-      "interface": "abi"
+      "interface": "abi",
+      "runtimeBytecode": "deployedBytecode"
     };
 
     // Merge options/contract object first, then extra_options
@@ -108,10 +109,13 @@ var TruffleSchema = {
 
     obj.contract_name = obj.contract_name || "Contract";
 
-    // Ensure unlinked binary starts with a 0x
+    // Ensure bytecode/deployedBytecode start with 0x
     // TODO: Remove this and enforce it through json schema
     if (obj.bytecode && obj.bytecode.indexOf("0x") < 0) {
       obj.bytecode = "0x" + obj.bytecode;
+    }
+    if (obj.deployedBytecode && obj.deployedBytecode.indexOf("0x") < 0) {
+      obj.deployedBytecode = "0x" + obj.deployedBytecode;
     }
 
     var updated_at = new Date().getTime();
