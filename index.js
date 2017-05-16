@@ -1,9 +1,26 @@
 var sha3 = require("crypto-js/sha3");
 var schema_version = require("./package.json").version;
+var Ajv = require("ajv");
+var contractSchema = require("./spec/contract.spec.json");
 
 // TODO: This whole thing should have a json schema.
 
 var TruffleSchema = {
+  // Return a promise to validate a contract object
+  // - Resolves as validated `contractObj`
+  // - Rejects with list of errors from schema validator
+  validateContractObject: function(contractObj) {
+    return new Promise(function (resolve, reject) {
+      var ajv = new Ajv();
+      var validate = ajv.compile(contractSchema);
+      if (validate(contractObj)) {
+        resolve(contractObj);
+      } else {
+        reject(validate.errors);
+      }
+    });
+  },
+
   // Normalize options passed in to be the exact options required
   // for truffle-contract.
   //
