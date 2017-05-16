@@ -3,9 +3,11 @@ var solc = require("solc");
 var Schema = require("../");
 
 describe("solc", function() {
-  it("Will save files using input directly from solc", function(done) {
+  var exampleSolidity = "contract A { function doStuff() {} } \n\n contract B { function somethingElse() {} }";
+
+  it("processes solc compile output correctly", function(done) {
     this.timeout(5000);
-    var result = solc.compile("contract A { function doStuff() {} } \n\n contract B { function somethingElse() {} }", 1);
+    var result = solc.compile(exampleSolidity, 1);
 
     var data = result.contracts[":A"];
 
@@ -18,5 +20,50 @@ describe("solc", function() {
     assert.equal(A.deployedSourceMap, data.srcmapRuntime);
 
     done();
+  });
+
+  it("processes solc compileStandard output correctly", function() {
+    this.timeout(5000);
+
+    var solcIn = JSON.stringify({
+      language: "Solidity",
+      sources: {
+        "A.sol": {
+          "content": exampleSolidity
+        }
+      }
+    });
+    var solcOut = solc.compileStandard(solcIn);
+
+    // contracts now grouped by solidity source file
+    var rawA = JSON.parse(solcOut).contracts["A.sol"].A;
+
+    var A = Schema.generateObject({}, rawA);
+
+    var expected = {
+      abi: rawA.abi,
+      bytecode: "0x" + rawA.evm.bytecode.object,
+      deployedBytecode: "0x" + rawA.evm.deployedBytecode.object,
+      sourceMap: rawA.evm.bytecode.sourceMap,
+      deployedSourceMap: rawA.evm.deployedBytecode.sourceMap
+    };
+
+    Object.keys(expected).forEach(function (key)  {
+      var expectedValue = expected[key];
+      var actualValue = A[key];
+
+      assert.deepEqual(
+        actualValue, expectedValue,
+        "Mismatched schema output for key `" + key + "` (" +
+        JSON.stringify(actualValue) + " != " + JSON.stringify(expectedValue) +
+        ")"
+      );
+    });
+
+    return Schema
+      .validateContractObject(A)
+      .catch(function (errors) {
+        assert.ifError(errors);
+      });
   });
 });

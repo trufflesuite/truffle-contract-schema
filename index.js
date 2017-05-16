@@ -21,36 +21,42 @@ var TruffleSchema = {
     });
   },
 
-  // Normalize options passed in to be the exact options required
-  // for truffle-contract.
-  //
-  // options can be three things:
-  // - normal object
-  // - contract object
-  // - solc output
-  //
-  // TODO: Is extra_options still necessary?
-  normalizeInput: function(options, extra_options) {
-    extra_options = extra_options || {};
+  normalizeSolcContract: function(standardContract) {
+    return {
+      "abi": standardContract.abi,
+      "bytecode": "0x" + standardContract.evm.bytecode.object,
+      "deployedBytecode": "0x" + standardContract.evm.deployedBytecode.object,
+      "sourceMap": standardContract.evm.bytecode.sourceMap,
+      "deployedSourceMap": standardContract.evm.deployedBytecode.sourceMap,
+      "ast": undefined // how to get? unsupported by solc right now
+    }
+  },
+
+  normalizeAbstraction: function(abstraction) {
+    var abstraction = abstraction.toJSON();
+    return {
+      "abi": abstraction.abi,
+      "bytecode": abstraction.bytecode,
+      "deployedBytecode": abstraction.deployedBytecode,
+      "sourceMap": abstraction.sourceMap,
+      "deployedSourceMap": abstraction.deployedSourceMap,
+      "ast": abstraction.ast,
+    }
+  },
+
+  normalizeOptions: function(options, extraOptions) {
+    extraOptions = extraOptions || {};
     var normalized = {};
-    var expected_keys = [
-      "contract_name",
+    var expectedKeys = [
       "abi",
       "bytecode",
       "deployedBytecode",
       "sourceMap",
       "deployedSourceMap",
-      "linkReferences",
-      "deployedLinkReferences",
-      "source",
-      "sourcePath",
-      "ast",
-      "address",
-      "networks",
-      "updated_at"
+      "ast"
     ];
 
-    var deprecated_key_mappings = {
+    var deprecatedKeyMappings = {
       "unlinked_binary": "bytecode",
       "binary": "bytecode",
       "srcmap": "sourceMap",
@@ -60,7 +66,7 @@ var TruffleSchema = {
     };
 
     // Merge options/contract object first, then extra_options
-    expected_keys.forEach(function(key) {
+    expectedKeys.forEach(function(key) {
       var value;
 
       try {
@@ -76,7 +82,7 @@ var TruffleSchema = {
 
       try {
         // Will throw an error if key == address and address doesn't exist.
-        value = extra_options[key];
+        value = extraOptions[key];
 
         if (value != undefined) {
           normalized[key] = value;
@@ -86,11 +92,11 @@ var TruffleSchema = {
       }
     });
 
-    Object.keys(deprecated_key_mappings).forEach(function(deprecated_key) {
-      var mapped_key = deprecated_key_mappings[deprecated_key];
+    Object.keys(deprecatedKeyMappings).forEach(function(deprecatedKey) {
+      var mappedKey = deprecatedKeyMappings[deprecatedKey];
 
-      if (normalized[mapped_key] == null) {
-        normalized[mapped_key] = options[deprecated_key] || extra_options[deprecated_key];
+      if (normalized[mappedKey] == null) {
+        normalized[mappedKey] = options[deprecatedKey] || extraOptions[deprecatedKey];
       }
     });
 
@@ -98,33 +104,60 @@ var TruffleSchema = {
       normalized.abi = JSON.parse(normalized.abi);
     }
 
-    this.copyCustomOptions(options, normalized);
-
     return normalized;
+  },
+
+  isSolcOutput: function(obj) {
+    var matches;
+    try {
+      matches = JSON.parse(obj.metadata).language === "Solidity";
+    } catch (e) {
+      matches = false;
+    }
+    return matches;
+  },
+
+  isAbstraction: function(obj) {
+    try {
+      return obj.contract;
+    } catch (e) {
+      return false;
+    }
   },
 
   // Generate a proper binary from normalized options, and optionally
   // merge it with an existing binary.
-  // TODO: This function needs to be renamed. Binary is a misnomer.
   generateObject: function(options, existing_object, extra_options) {
+    var obj;
+
     existing_object = existing_object || {};
     extra_options = extra_options || {};
 
     options.networks = options.networks || {};
-    existing_object.networks = existing_object.networks || {};
 
+    if (this.isSolcOutput(existing_object)) {
+      obj = this.normalizeSolcContract(existing_object);
+    } else if (this.isAbstraction(existing_object)) {
+      obj = this.normalizeAbstraction(existing_object);
+    } else {
+      obj = this.normalizeOptions(options, extra_options);
+    }
+
+    existing_object.networks = existing_object.networks || {};
     // Merge networks before overwriting
     Object.keys(existing_object.networks).forEach(function(network_id) {
       options.networks[network_id] = existing_object.networks[network_id];
     });
 
-    var obj = this.normalizeInput(existing_object, options);
+    this.copyCustomOptions(options, obj);
+    this.copyCustomOptions(existing_object, obj);
+
 
     if (options.overwrite == true) {
       existing_object = {};
     }
 
-    obj.contract_name = obj.contract_name || "Contract";
+    obj.contractName = obj.contractName || "Contract";
 
     // Ensure bytecode/deployedBytecode start with 0x
     // TODO: Remove this and enforce it through json schema
@@ -135,14 +168,14 @@ var TruffleSchema = {
       obj.deployedBytecode = "0x" + obj.deployedBytecode;
     }
 
-    var updated_at = new Date().getTime();
+    var updatedAt = new Date().toISOString();
 
-    obj.schema_version = schema_version;
+    obj.schemaVersion = schema_version;
 
     if (extra_options.dirty !== false) {
-      obj.updated_at = updated_at;
+      obj.updatedAt = updatedAt;
     } else {
-      obj.updated_at = options.updated_at || existing_object.updated_at || updated_at;
+      obj.updatedAt = options.updatedAt || existing_object.updatedAt || updatedAt;
     }
 
     this.copyCustomOptions(options, obj);
