@@ -3,13 +3,134 @@ var schema_version = require("./package.json").version;
 var Ajv = require("ajv");
 var contractSchema = require("./spec/contract.spec.json");
 
-// TODO: This whole thing should have a json schema.
+
+// some data functions
+//
+
+var getter = function(key, transform) {
+  if (transform === undefined) {
+    transform = function(x) { return x };
+  }
+
+  return function(obj) {
+    try {
+      return transform(obj[key]);
+    } catch (e) {
+      return undefined;
+    }
+  }
+}
+
+var chain = function() {
+  var getters = Array.prototype.slice.call(arguments);
+  return function(obj) {
+    return getters.reduce(function (cur, get) {
+      return get(cur);
+    }, obj);
+  }
+}
+
+var properties = {
+  "contractName": {
+    "additionalSources": [getter("contract_name")]
+  },
+  "abi": {
+    "additionalSources": [getter("interface")],
+    "transform": function(value) {
+      if (typeof value === "string") {
+        try {
+          value = JSON.parse(value)
+        } catch (e) {
+          value = undefined;
+        }
+      }
+      return value;
+    }
+  },
+  "bytecode": {
+    "additionalSources": [
+      chain(getter("evm"), getter("bytecode"), getter("object")),
+      getter("binary"),
+      getter("unlinked_binary"),
+    ],
+    "transform": function(value) {
+      if (value && value.indexOf("0x") != 0) {
+        return "0x" + value;
+      }
+    }
+  },
+  "deployedBytecode": {
+    "additionalSources": [
+      getter("runtimeBytecode"),
+      chain(getter("evm"), getter("deployedBytecode"), getter("object"))
+    ],
+    "transform": function(value) {
+      if (value && value.indexOf("0x") != 0) {
+        return "0x" + value;
+      }
+    }
+  },
+  "sourceMap": {
+    "additionalSources": [
+      getter("srcmap"),
+      chain(getter("evm"), getter("bytecode"), getter("sourceMap")),
+    ]
+  },
+  "deployedSourceMap": {
+    "additionalSources": [
+      getter("srcmapRuntime"),
+      chain(getter("evm"), getter("deployedBytecode"), getter("sourceMap")),
+    ]
+  },
+  "source": {
+    "additionalSources": []
+  },
+  "sourcePath": {
+    "additionalSources": []
+  },
+  "ast": {
+    "additionalSources": []
+  },
+  "address": {
+    "additionalSources": []
+  },
+  "networks": {
+    "additionalSources": [
+      // can infer blank network from being given network_id
+      getter("network_id", function(network_id) {
+        if (network_id !== undefined) {
+          var networks = {}
+          networks[network_id] = {"events": {}, "links": {}};
+          return networks;
+        }
+      })
+    ],
+    "transform": function(value) {
+      if (value === undefined) {
+        return {}
+      }
+    }
+  },
+  "schemaVersion": {
+    "additionalSources": [getter("schema_version")]
+  },
+  "updatedAt": {
+    "additionalSources": [
+      getter("updated_at", function(ms) {
+        return new Date(ms).toISOString()
+      })
+    ]
+  }
+};
+
+// Schema module
+//
 
 var TruffleSchema = {
   // Return a promise to validate a contract object
   // - Resolves as validated `contractObj`
   // - Rejects with list of errors from schema validator
-  validateContractObject: function(contractObj) {
+  validate: function(contractObj) {
     return new Promise(function (resolve, reject) {
       var ajv = new Ajv();
       var validate = ajv.compile(contractSchema);
@@ -21,164 +142,81 @@ var TruffleSchema = {
     });
   },
 
-  normalizeSolcContract: function(standardContract) {
-    return {
-      "abi": standardContract.abi,
-      "bytecode": "0x" + standardContract.evm.bytecode.object,
-      "deployedBytecode": "0x" + standardContract.evm.deployedBytecode.object,
-      "sourceMap": standardContract.evm.bytecode.sourceMap,
-      "deployedSourceMap": standardContract.evm.deployedBytecode.sourceMap,
-      "ast": undefined // how to get? unsupported by solc right now
-    }
-  },
-
-  normalizeAbstraction: function(abstraction) {
-    var abstraction = abstraction.toJSON();
-    return {
-      "abi": abstraction.abi,
-      "bytecode": abstraction.bytecode,
-      "deployedBytecode": abstraction.deployedBytecode,
-      "sourceMap": abstraction.sourceMap,
-      "deployedSourceMap": abstraction.deployedSourceMap,
-      "ast": abstraction.ast,
-    }
-  },
-
-  normalizeOptions: function(options, extraOptions) {
-    extraOptions = extraOptions || {};
+  // accepts as argument anything that can be turned into a contract object
+  // returns a contract object
+  normalize: function(objectable) {
+    // construct normalized obj
     var normalized = {};
-    var expectedKeys = [
-      "abi",
-      "bytecode",
-      "deployedBytecode",
-      "sourceMap",
-      "deployedSourceMap",
-      "ast"
-    ];
+    Object.keys(properties).forEach(function(key) {
+      var property = properties[key];
 
-    var deprecatedKeyMappings = {
-      "unlinked_binary": "bytecode",
-      "binary": "bytecode",
-      "srcmap": "sourceMap",
-      "srcmapRuntime": "deployedSourceMap",
-      "interface": "abi",
-      "runtimeBytecode": "deployedBytecode"
-    };
-
-    // Merge options/contract object first, then extra_options
-    expectedKeys.forEach(function(key) {
       var value;
 
-      try {
-        // Will throw an error if key == address and address doesn't exist.
-        value = options[key];
-
-        if (value != undefined) {
-          normalized[key] = value;
-        }
-      } catch (e) {
-        // Do nothing.
+      // try the key itself first and then additional sources
+      var sources = [getter(key)]
+      if (property.additionalSources) {
+        sources = sources.concat(property.additionalSources);
       }
 
-      try {
-        // Will throw an error if key == address and address doesn't exist.
-        value = extraOptions[key];
-
-        if (value != undefined) {
-          normalized[key] = value;
-        }
-      } catch (e) {
-        // Do nothing.
+      // iterate over sources until value is defined or end of list met
+      for (var i = 0; value === undefined && i < sources.length; i++) {
+        var source = sources[i];
+        value = source(objectable);
       }
+
+      // run source-agnostic transform on value
+      // (e.g. make sure bytecode begins 0x)
+      if (property.transform) {
+        value = property.transform(value);
+      }
+
+      // add resulting (possibly undefined) to normalized obj
+      normalized[key] = value;
     });
 
-    Object.keys(deprecatedKeyMappings).forEach(function(deprecatedKey) {
-      var mappedKey = deprecatedKeyMappings[deprecatedKey];
-
-      if (normalized[mappedKey] == null) {
-        normalized[mappedKey] = options[deprecatedKey] || extraOptions[deprecatedKey];
-      }
-    });
-
-    if (typeof normalized.abi == "string") {
-      normalized.abi = JSON.parse(normalized.abi);
-    }
+    // copy custom options
+    this.copyCustomOptions(objectable, normalized);
 
     return normalized;
   },
 
-  isSolcOutput: function(obj) {
-    var matches;
-    try {
-      matches = JSON.parse(obj.metadata).language === "Solidity";
-    } catch (e) {
-      matches = false;
-    }
-    return matches;
-  },
-
-  isAbstraction: function(obj) {
-    try {
-      return obj.contract;
-    } catch (e) {
-      return false;
-    }
-  },
-
   // Generate a proper binary from normalized options, and optionally
   // merge it with an existing binary.
-  generateObject: function(options, existing_object, extra_options) {
-    var obj;
+  generateObject: function(objectable, existingObjectable, options) {
+    objectable = objectable || {};
+    existingObjectable = existingObjectable || {};
 
-    existing_object = existing_object || {};
-    extra_options = extra_options || {};
+    options = options || {};
 
-    options.networks = options.networks || {};
+    obj = this.normalize(objectable);
+    existingObj = this.normalize(existingObjectable);
 
-    if (this.isSolcOutput(existing_object)) {
-      obj = this.normalizeSolcContract(existing_object);
-    } else if (this.isAbstraction(existing_object)) {
-      obj = this.normalizeAbstraction(existing_object);
-    } else {
-      obj = this.normalizeOptions(options, extra_options);
-    }
-
-    existing_object.networks = existing_object.networks || {};
-    // Merge networks before overwriting
-    Object.keys(existing_object.networks).forEach(function(network_id) {
-      options.networks[network_id] = existing_object.networks[network_id];
+    Object.keys(existingObj).forEach(function(key) {
+      // networks will be skipped because normalize replaces undefined with {}
+      if (obj[key] === undefined) {
+        obj[key] = existingObj[key];
+      }
     });
 
-    this.copyCustomOptions(options, obj);
-    this.copyCustomOptions(existing_object, obj);
+    Object.keys(existingObj.networks).forEach(function(network_id) {
+      obj.networks[network_id] = existingObj.networks[network_id];
+    });
 
-
-    if (options.overwrite == true) {
-      existing_object = {};
-    }
+    // if (options.overwrite == true) {
+    //   e = {};
+    // }
 
     obj.contractName = obj.contractName || "Contract";
-
-    // Ensure bytecode/deployedBytecode start with 0x
-    // TODO: Remove this and enforce it through json schema
-    if (obj.bytecode && obj.bytecode.indexOf("0x") < 0) {
-      obj.bytecode = "0x" + obj.bytecode;
-    }
-    if (obj.deployedBytecode && obj.deployedBytecode.indexOf("0x") < 0) {
-      obj.deployedBytecode = "0x" + obj.deployedBytecode;
-    }
 
     var updatedAt = new Date().toISOString();
 
     obj.schemaVersion = schema_version;
 
-    if (extra_options.dirty !== false) {
+    if (options.dirty !== false) {
       obj.updatedAt = updatedAt;
     } else {
-      obj.updatedAt = options.updatedAt || existing_object.updatedAt || updatedAt;
+      obj.updatedAt = obj.updatedAt || updatedAt;
     }
-
-    this.copyCustomOptions(options, obj);
 
     return obj;
   },

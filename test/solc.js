@@ -38,7 +38,7 @@ describe("solc", function() {
     // contracts now grouped by solidity source file
     var rawA = JSON.parse(solcOut).contracts["A.sol"].A;
 
-    var A = Schema.generateObject({}, rawA);
+    var A = Schema.generateObject(rawA);
 
     var expected = {
       abi: rawA.abi,
@@ -61,7 +61,7 @@ describe("solc", function() {
     });
 
     return Schema
-      .validateContractObject(A)
+      .validate(A)
       .catch(function (errors) {
         assert.ifError(errors);
       });

@@ -37,6 +37,15 @@
       "format": "date-time"
     }
   },
+  "patternProperties": {
+    "^x-": { "anyOf": [
+      { "type": "string" },
+      { "type": "number" },
+      { "type": "object" },
+      { "type": "array" }
+    ]}
+
+  },
   "additionalProperties": false,
   "required": [
   ],
