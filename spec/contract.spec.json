@@ -24,7 +24,6 @@
     "source": { "$ref": "#/definitions/Source" },
     "sourcePath": { "$ref": "#/definitions/SourcePath" },
     "ast": { "$ref": "#/definitions/AST" },
-    "address": { "$ref": "#/definitions/Address" },
     "networks": {
       "patternProperties": {
         "^[a-zA-Z0-9]+$": { "$ref": "#/definitions/Network" }
@@ -81,6 +80,7 @@
       "type": "object",
       "properties": {
         "address": { "$ref": "#/definitions/Address" },
+        "events": { "$ref": "#/definitions/EventsCollection" },
         "links": {
           "type": "object",
           "patternProperties": {
@@ -94,14 +94,15 @@
       "type": "object",
       "properties": {
         "address": { "$ref": "#/definitions/Address" },
-        "events": {
-          "type": "object",
-          "patternProperties": {
-            "^0x[a-fA-F0-9]{64}$": { "$ref": "#/definitions/Event" }
-          },
-          "additionalProperties": false
-        }
+        "events": { "$ref": "#/definitions/EventsCollection" }
       }
+    },
+    "EventsCollection": {
+      "type": "object",
+      "patternProperties": {
+        "^0x[a-fA-F0-9]{64}$": { "$ref": "#/definitions/Event" }
+      },
+      "additionalProperties": false
     },
     "Event": {
       "type": "object"
