@@ -49,14 +49,15 @@ var properties = {
   },
   "bytecode": {
     "additionalSources": [
-      chain(getter("evm"), getter("bytecode"), getter("object")),
       getter("binary"),
       getter("unlinked_binary"),
+      chain(getter("evm"), getter("bytecode"), getter("object"))
     ],
     "transform": function(value) {
       if (value && value.indexOf("0x") != 0) {
-        return "0x" + value;
+        value = "0x" + value;
       }
+      return value;
     }
   },
   "deployedBytecode": {
@@ -66,8 +67,9 @@ var properties = {
     ],
     "transform": function(value) {
       if (value && value.indexOf("0x") != 0) {
-        return "0x" + value;
+        value = "0x" + value;
       }
+      return value;
     }
   },
   "sourceMap": {
@@ -82,18 +84,9 @@ var properties = {
       chain(getter("evm"), getter("deployedBytecode"), getter("sourceMap")),
     ]
   },
-  "source": {
-    "additionalSources": []
-  },
-  "sourcePath": {
-    "additionalSources": []
-  },
-  "ast": {
-    "additionalSources": []
-  },
-  "address": {
-    "additionalSources": []
-  },
+  "source": {},
+  "sourcePath": {},
+  "ast": {},
   "networks": {
     "additionalSources": [
       // can infer blank network from being given network_id
@@ -107,8 +100,9 @@ var properties = {
     ],
     "transform": function(value) {
       if (value === undefined) {
-        return {}
+        value = {}
       }
+      return value;
     }
   },
   "schemaVersion": {
