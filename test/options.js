@@ -7,9 +7,6 @@ describe("options", function() {
       "x-from-dependency": "adder/Adder.sol"
     }
 
-    options = Schema.normalizeInput(options);
-    assert.equal(options["x-from-dependency"], "adder/Adder.sol");
-
     options = Schema.generateObject(options);
     assert.equal(options["x-from-dependency"], "adder/Adder.sol");
 

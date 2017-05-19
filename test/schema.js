@@ -29,7 +29,7 @@ describe("Schema", function() {
   });
 
   it("returns a validation promise with successful `then` behavior", function(done) {
-    Schema.validateContractObject(MetaCoin)
+    Schema.validate(MetaCoin)
       .then(function() {
         done();
       });
@@ -37,15 +37,15 @@ describe("Schema", function() {
 
   it("returns a validation promise with successful `catch` behavior", function(done) {
     var invalid = {
-      "address": -1
+      "abi": -1
     };
 
-    Schema.validateContractObject(invalid)
+    Schema.validate(invalid)
       .catch(function(errors) {
-        var addressErrors = errors.filter(function(error) {
-          return error.dataPath === ".address"
+        var abiErrors = errors.filter(function(error) {
+          return error.dataPath === ".abi"
         });
-        assert(addressErrors);
+        assert(abiErrors);
         done();
       });
   });
