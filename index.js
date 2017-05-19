@@ -76,13 +76,6 @@ var properties = {
   "ast": {},
   "networks": {
     // infers blank network from network_id
-    "sources": ["networks", getter("network_id", function(network_id) {
-      if (network_id !== undefined) {
-        var networks = {}
-        networks[network_id] = {"events": {}, "links": {}};
-        return networks;
-      }
-    })],
     "transform": function(value) {
       if (value === undefined) {
         value = {}
@@ -94,9 +87,13 @@ var properties = {
     "sources": ["schemaVersion", "schema_version"]
   },
   "updatedAt": {
-    "sources": ["updatedAt", getter("updated_at", function(ms) {
-      return new Date(ms).toISOString()
-    })]
+    "sources": ["updatedAt", "updated_at"],
+    "transform": function(value) {
+      if (typeof value === "number") {
+        value = new Date(value).toISOString();
+      }
+      return value;
+    }
   }
 };
 
