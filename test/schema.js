@@ -1,5 +1,4 @@
 var fs = require("fs");
-var spec = require("../spec/contract.spec.json");
 var Ajv = require("ajv");
 var assert = require("assert");
 var Schema = require("../index.js");
