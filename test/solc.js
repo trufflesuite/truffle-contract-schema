@@ -22,7 +22,7 @@ describe("solc", function() {
     done();
   });
 
-  it("processes solc compileStandard output correctly", function() {
+  it("processes solc compileStandard output correctly", function(done) {
     this.timeout(5000);
 
     var solcIn = JSON.stringify({
@@ -60,10 +60,8 @@ describe("solc", function() {
       );
     });
 
-    return Schema
-      .validate(A)
-      .catch(function (errors) {
-        assert.ifError(errors);
-      });
+    // throws error if invalid
+    Schema.validate(A);
+    done();
   });
 });

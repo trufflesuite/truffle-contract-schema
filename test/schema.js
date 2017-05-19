@@ -28,26 +28,23 @@ describe("Schema", function() {
     assert.ifError(validator.errors);
   });
 
-  it("returns a validation promise with successful `then` behavior", function(done) {
+  it("validates correct input", function() {
     Schema.validate(MetaCoin)
-      .then(function() {
-        done();
-      });
   });
 
-  it("returns a validation promise with successful `catch` behavior", function(done) {
+  it("throws exception on invalid input", function() {
     var invalid = {
       "abi": -1
     };
 
-    Schema.validate(invalid)
-      .catch(function(errors) {
-        var abiErrors = errors.filter(function(error) {
-          return error.dataPath === ".abi"
-        });
-        assert(abiErrors);
-        done();
+    try {
+      Schema.validate(invalid)
+    } catch (errors) {
+      var abiErrors = errors.filter(function(error) {
+        return error.dataPath === ".abi"
       });
+      assert(abiErrors);
+    }
   });
 
 });

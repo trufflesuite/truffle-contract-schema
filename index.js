@@ -146,15 +146,13 @@ var TruffleContractSchema = {
   // - Resolves as validated `contractObj`
   // - Rejects with list of errors from schema validator
   validate: function(contractObj) {
-    return new Promise(function (resolve, reject) {
-      var ajv = new Ajv();
-      var validate = ajv.compile(contractSchema);
-      if (validate(contractObj)) {
-        resolve(contractObj);
-      } else {
-        reject(validate.errors);
-      }
-    });
+    var ajv = new Ajv();
+    var validate = ajv.compile(contractSchema);
+    if (validate(contractObj)) {
+      return contractObj;
+    } else {
+      throw validate.errors;
+    }
   },
 
   // accepts as argument anything that can be turned into a contract object
