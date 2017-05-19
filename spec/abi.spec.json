@@ -3,17 +3,16 @@
 
   "$schema": "http://json-schema.org/schema#",
 
-  "definitions": {
-    "ABI": {
-      "type": "array",
-      "items": { "anyOf": [
-        { "$ref": "#/definitions/NormalFunction" },
-        { "$ref": "#/definitions/ConstructorFunction" },
-        { "$ref": "#/definitions/FallbackFunction" },
-        { "$ref": "#/definitions/Event" }
-      ]}
-    },
+  "type": "array",
 
+  "items": { "anyOf": [
+    { "$ref": "#/definitions/NormalFunction" },
+    { "$ref": "#/definitions/ConstructorFunction" },
+    { "$ref": "#/definitions/FallbackFunction" },
+    { "$ref": "#/definitions/Event" }
+  ]},
+
+  "definitions": {
     "NormalFunction": {
       "type": "object",
       "properties": {

@@ -7,7 +7,7 @@
 
   "properties": {
     "contractName": { "$ref": "#/definitions/ContractName" },
-    "abi": { "$ref": "abi.spec.json#/definitions/ABI" },
+    "abi": { "$ref": "abi.spec.json#" },
     "bytecode": { "allOf": [
       { "$ref": "#/definitions/Bytecode" },
       { "description": "Bytecode sent as contract-creation transaction data" }
