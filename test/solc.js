@@ -11,7 +11,7 @@ describe("solc", function() {
 
     var data = result.contracts[":A"];
 
-    var A = Schema.generateObject(data);
+    var A = Schema.normalize(data);
 
     assert.deepEqual(A.abi, JSON.parse(data.interface));
     assert.equal(A.bytecode, "0x" + data.bytecode);
@@ -38,7 +38,7 @@ describe("solc", function() {
     // contracts now grouped by solidity source file
     var rawA = JSON.parse(solcOut).contracts["A.sol"].A;
 
-    var A = Schema.generateObject(rawA);
+    var A = Schema.normalize(rawA);
 
     var expected = {
       abi: rawA.abi,
