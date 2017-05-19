@@ -32,10 +32,10 @@ var chain = function() {
 
 var properties = {
   "contractName": {
-    "additionalSources": [getter("contract_name")]
+    "sources": ["contractName", "contract_name"]
   },
   "abi": {
-    "additionalSources": [getter("interface")],
+    "sources": ["abi", "interface"],
     "transform": function(value) {
       if (typeof value === "string") {
         try {
@@ -48,10 +48,8 @@ var properties = {
     }
   },
   "bytecode": {
-    "additionalSources": [
-      getter("binary"),
-      getter("unlinked_binary"),
-      chain(getter("evm"), getter("bytecode"), getter("object"))
+    "sources": [
+      "bytecode", "binary", "unlinked_binary", "evm.bytecode.object"
     ],
     "transform": function(value) {
       if (value && value.indexOf("0x") != 0) {
@@ -61,9 +59,8 @@ var properties = {
     }
   },
   "deployedBytecode": {
-    "additionalSources": [
-      getter("runtimeBytecode"),
-      chain(getter("evm"), getter("deployedBytecode"), getter("object"))
+    "sources": [
+      "deployedBytecode", "runtimeBytecode", "evm.deployedBytecode.object"
     ],
     "transform": function(value) {
       if (value && value.indexOf("0x") != 0) {
@@ -73,22 +70,16 @@ var properties = {
     }
   },
   "sourceMap": {
-    "additionalSources": [
-      getter("srcmap"),
-      chain(getter("evm"), getter("bytecode"), getter("sourceMap")),
-    ]
+    "sources": ["sourceMap", "srcmap", "evm.bytecode.sourceMap"]
   },
   "deployedSourceMap": {
-    "additionalSources": [
-      getter("srcmapRuntime"),
-      chain(getter("evm"), getter("deployedBytecode"), getter("sourceMap")),
-    ]
+    "sources": ["deployedSourceMap", "srcmapRuntime", "evm.deployedBytecode.sourceMap"]
   },
   "source": {},
   "sourcePath": {},
   "ast": {},
   "networks": {
-    "additionalSources": [
+    "sources": ["networks",
       // can infer blank network from being given network_id
       getter("network_id", function(network_id) {
         if (network_id !== undefined) {
@@ -106,11 +97,10 @@ var properties = {
     }
   },
   "schemaVersion": {
-    "additionalSources": [getter("schema_version")]
+    "sources": ["schemaVersion", "schema_version"]
   },
   "updatedAt": {
-    "additionalSources": [
-      getter("updated_at", function(ms) {
+    "sources": ["updatedAt", getter("updated_at", function(ms) {
         return new Date(ms).toISOString()
       })
     ]
@@ -146,15 +136,23 @@ var TruffleSchema = {
 
       var value;
 
-      // try the key itself first and then additional sources
-      var sources = [getter(key)]
-      if (property.additionalSources) {
-        sources = sources.concat(property.additionalSources);
-      }
+      // either used the defined sources or assume the key will only ever be
+      // listed as its canonical name (itself)
+      var sources = property.sources || [key];
 
       // iterate over sources until value is defined or end of list met
       for (var i = 0; value === undefined && i < sources.length; i++) {
         var source = sources[i];
+        // string refers to path to value in objectable, split and chain
+        // getters
+        if (typeof source === "string") {
+          var traversals = source.split(".")
+            .map(function(k) { return getter(k) });
+          source = chain.apply(null, traversals);
+        }
+
+        // source should be a function that takes the objectable and returns
+        // value or undefined
         value = source(objectable);
       }
 
