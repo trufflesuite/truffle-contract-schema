@@ -4,32 +4,28 @@ var Ajv = require("ajv");
 var contractSchema = require("./spec/contract.spec.json");
 
 
-// some data functions
-//
-
-var getter = function(key, transform) {
-  if (transform === undefined) {
-    transform = function(x) { return x };
-  }
-
-  return function(obj) {
-    try {
-      return transform(obj[key]);
-    } catch (e) {
-      return undefined;
-    }
-  }
-}
-
-var chain = function() {
-  var getters = Array.prototype.slice.call(arguments);
-  return function(obj) {
-    return getters.reduce(function (cur, get) {
-      return get(cur);
-    }, obj);
-  }
-}
-
+/**
+ * Property definitions for Contract Objects
+ *
+ * Describes canonical output properties as sourced from some "dirty" input
+ * object. Describes normalization process to account for deprecated and/or
+ * nonstandard keys and values.
+ *
+ * Maps (key -> property) where:
+ *  - `key` is the top-level output key matching up with those in the schema
+ *  - `property` is an object with optional values:
+ *      - `sources`: list of sources (see below); default `key`
+ *      - `transform`: function(value) -> transformed value; default x -> x
+ *
+ * Each source represents a means to select a value from dirty object.
+ * Allows:
+ *  - dot-separated (`.`) string, corresponding to path to value in dirty
+ *    object
+ *  - function(dirtyObj) -> (cleanValue | undefined)
+ *
+ * The optional `transform` parameter standardizes value regardless of source,
+ * for purposes of ensuring data type and/or string schemas.
+ */
 var properties = {
   "contractName": {
     "sources": ["contractName", "contract_name"]
@@ -79,16 +75,14 @@ var properties = {
   "sourcePath": {},
   "ast": {},
   "networks": {
-    "sources": ["networks",
-      // can infer blank network from being given network_id
-      getter("network_id", function(network_id) {
-        if (network_id !== undefined) {
-          var networks = {}
-          networks[network_id] = {"events": {}, "links": {}};
-          return networks;
-        }
-      })
-    ],
+    // infers blank network from network_id
+    "sources": ["networks", getter("network_id", function(network_id) {
+      if (network_id !== undefined) {
+        var networks = {}
+        networks[network_id] = {"events": {}, "links": {}};
+        return networks;
+      }
+    })],
     "transform": function(value) {
       if (value === undefined) {
         value = {}
@@ -101,11 +95,52 @@ var properties = {
   },
   "updatedAt": {
     "sources": ["updatedAt", getter("updated_at", function(ms) {
-        return new Date(ms).toISOString()
-      })
-    ]
+      return new Date(ms).toISOString()
+    })]
   }
 };
+
+
+/**
+ * Construct a getter for a given key, possibly applying some post-retrieve
+ * transformation on the resulting value.
+ *
+ * @return {Function} Accepting dirty object and returning value || undefined
+ */
+function getter(key, transform) {
+  if (transform === undefined) {
+    transform = function(x) { return x };
+  }
+
+  return function(obj) {
+    try {
+      return transform(obj[key]);
+    } catch (e) {
+      return undefined;
+    }
+  }
+}
+
+
+/**
+ * Chains together a series of function(obj) -> value, passing resulting
+ * returned value to next function in chain.
+ *
+ * Accepts any number of functions passed as arguments
+ * @return {Function} Accepting initial object, returning end-of-chain value
+ *
+ * Assumes all intermediary values to be objects, with well-formed sequence
+ * of operations.
+ */
+function chain() {
+  var getters = Array.prototype.slice.call(arguments);
+  return function(obj) {
+    return getters.reduce(function (cur, get) {
+      return get(cur);
+    }, obj);
+  }
+}
+
 
 // Schema module
 //
@@ -128,13 +163,13 @@ var TruffleSchema = {
 
   // accepts as argument anything that can be turned into a contract object
   // returns a contract object
-  normalize: function(objectable) {
-    // construct normalized obj
+  normalize: function(objDirty) {
     var normalized = {};
+
+    // iterate over each property
     Object.keys(properties).forEach(function(key) {
       var property = properties[key];
-
-      var value;
+      var value;  // normalized value || undefined
 
       // either used the defined sources or assume the key will only ever be
       // listed as its canonical name (itself)
@@ -143,7 +178,7 @@ var TruffleSchema = {
       // iterate over sources until value is defined or end of list met
       for (var i = 0; value === undefined && i < sources.length; i++) {
         var source = sources[i];
-        // string refers to path to value in objectable, split and chain
+        // string refers to path to value in objDirty, split and chain
         // getters
         if (typeof source === "string") {
           var traversals = source.split(".")
@@ -151,9 +186,9 @@ var TruffleSchema = {
           source = chain.apply(null, traversals);
         }
 
-        // source should be a function that takes the objectable and returns
+        // source should be a function that takes the objDirty and returns
         // value or undefined
-        value = source(objectable);
+        value = source(objDirty);
       }
 
       // run source-agnostic transform on value
@@ -167,21 +202,21 @@ var TruffleSchema = {
     });
 
     // copy custom options
-    this.copyCustomOptions(objectable, normalized);
+    this.copyCustomOptions(objDirty, normalized);
 
     return normalized;
   },
 
   // Generate a proper binary from normalized options, and optionally
   // merge it with an existing binary.
-  generateObject: function(objectable, existingObjectable, options) {
-    objectable = objectable || {};
-    existingObjectable = existingObjectable || {};
+  generateObject: function(objDirty, existingObjDirty, options) {
+    objDirty = objDirty || {};
+    existingObjDirty = existingObjDirty || {};
 
     options = options || {};
 
-    obj = this.normalize(objectable);
-    existingObj = this.normalize(existingObjectable);
+    obj = this.normalize(objDirty);
+    existingObj = this.normalize(existingObjDirty);
 
     Object.keys(existingObj).forEach(function(key) {
       // networks will be skipped because normalize replaces undefined with {}
