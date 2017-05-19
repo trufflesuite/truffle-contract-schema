@@ -1,6 +1,7 @@
 var sha3 = require("crypto-js/sha3");
 var pkgVersion = require("./package.json").version;
 var Ajv = require("ajv");
+var abiSchema = require("./spec/abi.spec.json");
 var contractSchema = require("./spec/contract.spec.json");
 
 
@@ -147,11 +148,12 @@ var TruffleContractSchema = {
   // - Rejects with list of errors from schema validator
   validate: function(contractObj) {
     var ajv = new Ajv();
-    var validate = ajv.compile(contractSchema);
-    if (validate(contractObj)) {
+    ajv.addSchema(abiSchema);
+    ajv.addSchema(contractSchema);
+    if (ajv.validate("contract.spec.json", contractObj)) {
       return contractObj;
     } else {
-      throw validate.errors;
+      throw ajv.errors;
     }
   },
 

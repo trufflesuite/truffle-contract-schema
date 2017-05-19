@@ -1,0 +1,96 @@
+{
+  "id": "abi.spec.json",
+  "$schema": "http://json-schema.org/schema#",
+  "definitions": {
+    "ABI": {
+      "type": "array",
+      "items": { "anyOf": [
+        { "$ref": "#/definitions/NormalFunction" },
+        { "$ref": "#/definitions/ConstructorFunction" },
+        { "$ref": "#/definitions/FallbackFunction" },
+        { "$ref": "#/definitions/Event" }
+      ]}
+    },
+    "NormalFunction": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["function"],
+          "default": "function"
+        },
+        "name": { "type": "string" },
+        "inputs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Parameter" }
+        },
+        "outputs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Parameter" }
+        },
+        "constant": { "type": "boolean" },
+        "payable": { "type": "boolean", "default": false }
+      },
+      "required": ["name", "inputs", "constant"]
+    },
+    "ConstructorFunction": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["constructor"]
+        },
+        "inputs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Parameter" }
+        },
+        "payable": { "type": "boolean", "default": false }
+      },
+      "required": ["type", "inputs"]
+    },
+    "FallbackFunction": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["fallback"]
+        },
+        "payable": { "type": "boolean", "default": false }
+      },
+      "required": ["type"]
+    },
+    "Event": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["event"]
+        },
+        "name": { "type": "string" },
+        "inputs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/EventParameter" }
+        },
+        "anonymous": { "type": "boolean" }
+      },
+      "required": ["type", "name", "inputs", "anonymous"]
+    },
+    "Parameter": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" }
+      },
+      "required": ["name", "type"]
+    },
+    "EventParameter": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "indexed": { "type": "boolean" }
+      },
+      "required": ["name", "type", "indexed"]
+    }
+  }
+}
