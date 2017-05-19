@@ -1,5 +1,5 @@
 var sha3 = require("crypto-js/sha3");
-var schema_version = require("./package.json").version;
+var pkgVersion = require("./package.json").version;
 var Ajv = require("ajv");
 var contractSchema = require("./spec/contract.spec.json");
 
@@ -75,7 +75,6 @@ var properties = {
   "sourcePath": {},
   "ast": {},
   "networks": {
-    // infers blank network from network_id
     "transform": function(value) {
       if (value === undefined) {
         value = {}
@@ -198,8 +197,15 @@ var TruffleSchema = {
       normalized[key] = value;
     });
 
-    // copy custom options
-    this.copyCustomOptions(objDirty, normalized);
+    // Copy x- options
+    Object.keys(objDirty).forEach(function(key) {
+      if (key.indexOf("x-") === 0) {
+        normalized[key] = getter(key)(objDirty);
+      }
+    });
+
+    // update schema version
+    normalized.schemaVersion = pkgVersion;
 
     return normalized;
   },
@@ -226,11 +232,8 @@ var TruffleSchema = {
       obj.networks[network_id] = existingObj.networks[network_id];
     });
 
-    obj.contractName = obj.contractName || "Contract";
-
     var updatedAt = new Date().toISOString();
 
-    obj.schemaVersion = schema_version;
 
     if (options.dirty !== false) {
       obj.updatedAt = updatedAt;
@@ -239,23 +242,6 @@ var TruffleSchema = {
     }
 
     return obj;
-  },
-
-  copyCustomOptions: function(from, to) {
-    // Now let all x- options through.
-    Object.keys(from).forEach(function(key) {
-      if (key.indexOf("x-") != 0) return;
-
-      try {
-        value = from[key];
-
-        if (value != undefined) {
-          to[key] = value;
-        }
-      } catch (e) {
-        // Do nothing.
-      }
-    });
   }
 };
 
