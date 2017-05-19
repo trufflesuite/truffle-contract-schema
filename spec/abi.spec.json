@@ -1,10 +1,8 @@
 {
   "id": "abi.spec.json",
-
   "$schema": "http://json-schema.org/schema#",
 
   "type": "array",
-
   "items": { "anyOf": [
     { "$ref": "#/definitions/NormalFunction" },
     { "$ref": "#/definitions/ConstructorFunction" },

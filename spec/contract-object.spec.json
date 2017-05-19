@@ -1,10 +1,8 @@
 {
   "id": "contract-object.spec.json",
-
   "$schema": "http://json-schema.org/schema#",
 
   "type": "object",
-
   "properties": {
     "contractName": { "$ref": "#/definitions/ContractName" },
     "abi": { "$ref": "abi.spec.json#" },
@@ -39,11 +37,9 @@
       "format": "date-time"
     }
   },
-
   "required": [
     "abi"
   ],
-
   "patternProperties": {
     "^x-": { "anyOf": [
       { "type": "string" },
@@ -53,7 +49,6 @@
     ]}
 
   },
-
   "additionalProperties": false,
 
   "definitions": {
