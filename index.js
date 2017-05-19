@@ -229,10 +229,6 @@ var TruffleSchema = {
       obj.networks[network_id] = existingObj.networks[network_id];
     });
 
-    // if (options.overwrite == true) {
-    //   e = {};
-    // }
-
     obj.contractName = obj.contractName || "Contract";
 
     var updatedAt = new Date().toISOString();
