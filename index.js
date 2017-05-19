@@ -208,39 +208,6 @@ var TruffleContractSchema = {
     normalized.schemaVersion = pkgVersion;
 
     return normalized;
-  },
-
-  // Generate a proper binary from normalized options, and optionally
-  // merge it with an existing binary.
-  generateObject: function(objDirty, existingObjDirty, options) {
-    objDirty = objDirty || {};
-    existingObjDirty = existingObjDirty || {};
-
-    options = options || {};
-
-    obj = this.normalize(objDirty);
-    existingObj = this.normalize(existingObjDirty);
-
-    Object.keys(existingObj).forEach(function(key) {
-      // networks will be skipped because normalize replaces undefined with {}
-      if (obj[key] === undefined) {
-        obj[key] = existingObj[key];
-      }
-    });
-
-    Object.keys(existingObj.networks).forEach(function(network_id) {
-      obj.networks[network_id] = existingObj.networks[network_id];
-    });
-
-    var updatedAt = new Date().toISOString();
-
-    if (options.dirty !== false) {
-      obj.updatedAt = updatedAt;
-    } else {
-      obj.updatedAt = obj.updatedAt || updatedAt;
-    }
-
-    return obj;
   }
 };
 
