@@ -1,7 +1,10 @@
 {
   "id": "contract-object.spec.json",
+
   "$schema": "http://json-schema.org/schema#",
+
   "type": "object",
+
   "properties": {
     "contractName": { "$ref": "#/definitions/ContractName" },
     "abi": { "$ref": "abi.spec.json#/definitions/ABI" },
@@ -36,6 +39,11 @@
       "format": "date-time"
     }
   },
+
+  "required": [
+    "abi"
+  ],
+
   "patternProperties": {
     "^x-": { "anyOf": [
       { "type": "string" },
@@ -45,35 +53,41 @@
     ]}
 
   },
+
   "additionalProperties": false,
-  "required": [
-    "abi"
-  ],
+
   "definitions": {
     "ContractName": {
       "type": "string",
       "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
     },
+
     "Address": {
       "type": "string",
       "pattern": "^0x[a-fA-F0-9]{40}$"
     },
+
     "Bytecode": {
       "type": "string",
       "pattern": "^0x0$|^0x([a-fA-F0-9]{2}|__[a-zA-Z0-9_]{38})+$"
     },
+
     "Source": {
       "type": "string"
     },
+
     "SourceMap": {
       "type": "string"
     },
+
     "SourcePath": {
       "type": "string"
     },
+
     "AST": {
       "type": "object"
     },
+
     "Network": {
       "type": "object",
       "properties": {
@@ -88,6 +102,7 @@
         }
       }
     },
+
     "Link": {
       "type": "object",
       "properties": {
@@ -95,6 +110,7 @@
         "events": { "$ref": "#/definitions/EventsCollection" }
       }
     },
+
     "EventsCollection": {
       "type": "object",
       "patternProperties": {
@@ -102,6 +118,7 @@
       },
       "additionalProperties": false
     },
+
     "SchemaVersion": {
       "type": "string",
       "pattern": "[0-9]+\\.[0-9]+\\.[0-9]+"
