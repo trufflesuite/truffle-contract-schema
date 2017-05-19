@@ -141,7 +141,7 @@ function chain() {
 // Schema module
 //
 
-var TruffleSchema = {
+var TruffleContractSchema = {
   // Return a promise to validate a contract object
   // - Resolves as validated `contractObj`
   // - Rejects with list of errors from schema validator
@@ -234,7 +234,6 @@ var TruffleSchema = {
 
     var updatedAt = new Date().toISOString();
 
-
     if (options.dirty !== false) {
       obj.updatedAt = updatedAt;
     } else {
@@ -245,4 +244,4 @@ var TruffleSchema = {
   }
 };
 
-module.exports = TruffleSchema;
+module.exports = TruffleContractSchema;
