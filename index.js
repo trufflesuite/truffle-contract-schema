@@ -149,7 +149,7 @@ var TruffleContractSchema = {
   // - Resolves as validated `contractObj`
   // - Rejects with list of errors from schema validator
   validate: function(contractObj) {
-    var ajv = new Ajv();
+    var ajv = new Ajv({ useDefaults: true });
     ajv.addSchema(abiSchema);
     ajv.addSchema(networkObjectSchema);
     ajv.addSchema(contractObjectSchema);
