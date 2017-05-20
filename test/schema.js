@@ -1,7 +1,6 @@
-var fs = require("fs");
 var Ajv = require("ajv");
-var assert = require("assert");
 var Schema = require("../index.js");
+var assert = require("assert");
 
 var MetaCoin = require("./MetaCoin.json");
 

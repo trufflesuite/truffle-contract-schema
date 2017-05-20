@@ -162,7 +162,8 @@ var TruffleContractSchema = {
 
   // accepts as argument anything that can be turned into a contract object
   // returns a contract object
-  normalize: function(objDirty) {
+  normalize: function(objDirty, options) {
+    options = options || {};
     var normalized = {};
 
     // iterate over each property
@@ -210,7 +211,11 @@ var TruffleContractSchema = {
     // update schema version
     normalized.schemaVersion = pkgVersion;
 
-    return normalized;
+    if (options.validate) {
+      this.validate(normalized);
+    }
+
+    return normalized
   }
 };
 
