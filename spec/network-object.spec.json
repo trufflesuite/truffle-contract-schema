@@ -20,6 +20,7 @@
       "additionalProperties": false
     }
   },
+  "additionalProperties": false,
 
   "definitions": {
     "Address": {
