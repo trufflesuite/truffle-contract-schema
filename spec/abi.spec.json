@@ -4,10 +4,10 @@
 
   "type": "array",
   "items": { "anyOf": [
-    { "$ref": "#/definitions/NormalFunction" },
+    { "$ref": "#/definitions/Event" },
     { "$ref": "#/definitions/ConstructorFunction" },
     { "$ref": "#/definitions/FallbackFunction" },
-    { "$ref": "#/definitions/Event" }
+    { "$ref": "#/definitions/NormalFunction" }
   ]},
 
   "definitions": {
@@ -26,12 +26,14 @@
         },
         "outputs": {
           "type": "array",
-          "items": { "$ref": "#/definitions/Parameter" }
+          "items": { "$ref": "#/definitions/Parameter" },
+          "default": []
         },
         "constant": { "type": "boolean" },
         "payable": { "type": "boolean", "default": false }
       },
-      "required": ["name", "inputs", "constant"]
+      "required": ["name", "inputs", "constant"],
+      "additionalProperties": false
     },
 
     "ConstructorFunction": {
@@ -47,7 +49,8 @@
         },
         "payable": { "type": "boolean", "default": false }
       },
-      "required": ["type", "inputs"]
+      "required": ["type", "inputs"],
+      "additionalProperties": false
     },
 
     "FallbackFunction": {
@@ -57,9 +60,11 @@
           "type": "string",
           "enum": ["fallback"]
         },
+        "constant": { "type": "boolean" },
         "payable": { "type": "boolean", "default": false }
       },
-      "required": ["type"]
+      "required": ["type"],
+      "additionalProperties": false
     },
 
     "Event": {
@@ -76,7 +81,8 @@
         },
         "anonymous": { "type": "boolean" }
       },
-      "required": ["type", "name", "inputs", "anonymous"]
+      "required": ["type", "name", "inputs", "anonymous"],
+      "additionalProperties": false
     },
 
     "Parameter": {
