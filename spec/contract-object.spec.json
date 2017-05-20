@@ -27,7 +27,7 @@
     "ast": { "$ref": "#/definitions/AST" },
     "networks": {
       "patternProperties": {
-        "^[a-zA-Z0-9]+$": { "$ref": "#/definitions/Network" }
+        "^[a-zA-Z0-9]+$": { "$ref": "network-object.spec.json#" }
       },
       "additionalProperties": false
     },
@@ -57,11 +57,6 @@
       "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
     },
 
-    "Address": {
-      "type": "string",
-      "pattern": "^0x[a-fA-F0-9]{40}$"
-    },
-
     "Bytecode": {
       "type": "string",
       "pattern": "^0x0$|^0x([a-fA-F0-9]{2}|__[a-zA-Z0-9_]{38})+$"
@@ -81,37 +76,6 @@
 
     "AST": {
       "type": "object"
-    },
-
-    "Network": {
-      "type": "object",
-      "properties": {
-        "address": { "$ref": "#/definitions/Address" },
-        "events": { "$ref": "#/definitions/EventsCollection" },
-        "links": {
-          "type": "object",
-          "patternProperties": {
-            "^[a-zA-Z_][a-zA-Z0-9_]*$": { "$ref": "#/definitions/Link" }
-          },
-          "additionalProperties": false
-        }
-      }
-    },
-
-    "Link": {
-      "type": "object",
-      "properties": {
-        "address": { "$ref": "#/definitions/Address" },
-        "events": { "$ref": "#/definitions/EventsCollection" }
-      }
-    },
-
-    "EventsCollection": {
-      "type": "object",
-      "patternProperties": {
-        "^0x[a-fA-F0-9]{64}$": { "$ref": "abi.spec.json#/definitions/Event" }
-      },
-      "additionalProperties": false
     },
 
     "SchemaVersion": {

@@ -1,8 +1,10 @@
 var sha3 = require("crypto-js/sha3");
 var pkgVersion = require("./package.json").version;
 var Ajv = require("ajv");
+
+var contractObjectSchema = require("./spec/contract-object.spec.json");
+var networkObjectSchema = require("./spec/network-object.spec.json");
 var abiSchema = require("./spec/abi.spec.json");
-var contractSchema = require("./spec/contract-object.spec.json");
 
 
 /**
@@ -149,7 +151,8 @@ var TruffleContractSchema = {
   validate: function(contractObj) {
     var ajv = new Ajv();
     ajv.addSchema(abiSchema);
-    ajv.addSchema(contractSchema);
+    ajv.addSchema(networkObjectSchema);
+    ajv.addSchema(contractObjectSchema);
     if (ajv.validate("contract-object.spec.json", contractObj)) {
       return contractObj;
     } else {
