@@ -1,27 +1,50 @@
 {
   "id": "contract-object.spec.json",
   "$schema": "http://json-schema.org/schema#",
+  "title": "Contract Object",
+  "description": "Describes a contract consumable by Truffle, possibly including deployed instances on networks",
 
   "type": "object",
   "properties": {
-    "contractName": { "$ref": "#/definitions/ContractName" },
-    "abi": { "$ref": "abi.spec.json#" },
-    "bytecode": { "allOf": [
-      { "$ref": "#/definitions/Bytecode" },
-      { "description": "Bytecode sent as contract-creation transaction data" }
-    ]},
-    "deployedBytecode": { "allOf": [
-      { "$ref": "#/definitions/Bytecode" },
-      { "description": "On-chain deployed contract bytecode" }
-    ]},
-    "sourceMap": { "allOf": [
-      { "$ref": "#/definitions/SourceMap" },
-      { "description": "Source mapping for contract-creation transaction data bytecode" }
-    ]},
-    "deployedSourceMap": { "allOf": [
-      { "$ref": "#/definitions/SourceMap" },
-      { "description": "Source mapping for contract bytecode" }
-    ]},
+    "contractName": {
+      "allOf": [
+        { "$ref": "#/definitions/ContractName" },
+        {
+          "description": "Name used to identify the contract",
+          "default": "Contract"
+        }
+      ]
+    },
+    "abi": {
+      "allOf": [
+        { "$ref": "abi.spec.json#" },
+        { "description": "Interface description returned by compiler for source" }
+      ]
+    },
+    "bytecode": {
+      "allOf": [
+        { "$ref": "#/definitions/Bytecode" },
+        { "description": "Bytecode sent as contract-creation transaction data, with unresolved link references" }
+      ]
+    },
+    "deployedBytecode": {
+      "allOf": [
+        { "$ref": "#/definitions/Bytecode" },
+        { "description": "On-chain deployed contract bytecode, with unresolved link references" }
+      ]
+    },
+    "sourceMap": {
+      "allOf": [
+        { "$ref": "#/definitions/SourceMap" },
+        { "description": "Source mapping for contract-creation transaction data bytecode" }
+      ]
+    },
+    "deployedSourceMap": {
+      "allOf": [
+        { "$ref": "#/definitions/SourceMap" },
+        { "description": "Source mapping for contract bytecode" }
+      ]
+    },
     "source": { "$ref": "#/definitions/Source" },
     "sourcePath": { "$ref": "#/definitions/SourcePath" },
     "ast": { "$ref": "#/definitions/AST" },
@@ -66,7 +89,10 @@
     },
 
     "SourceMap": {
-      "type": "string"
+      "type": "string",
+      "examples": [
+        "315:637:1:-;;;452:55;;;;;;;-1:-1:-1;;;;;485:9:1;476:19;:8;:19;;;;;;;;;;498:5;476:27;;452:55;315:637;;;;;;;"
+      ]
     },
 
     "SourcePath": {

@@ -1,6 +1,7 @@
 {
   "id": "network-object.spec.json",
   "$schema": "http://json-schema.org/schema#",
+  "title": "Network Object",
 
   "type": "object",
   "properties": {
