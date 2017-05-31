@@ -18,7 +18,7 @@ network).
 
 | type | _string_ matching pattern `^0x[a-fA-F0-9]{40}$` |
 | ---: | ---- |
-| ref | [Network Object: Address](#network-object--address) |
+| ref | [Address](#network-object--address) |
 | **required** |
 
 The contract instance's primary identifier on the network. 40 character long
