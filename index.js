@@ -25,7 +25,8 @@ var TruffleSchema = {
       "events",
       "network_id",
       "default_network",
-      "updated_at"
+      "updated_at",
+      "block_number_deployed_in"
     ];
 
     // Merge options/contract object first, then extra_options
@@ -116,6 +117,7 @@ var TruffleSchema = {
       // Override specific keys
       network.address = options.address || network.address;
       network.links = options.links;
+      network.block_number_deployed_in = options.block_number_deployed_in || network.block_number_deployed_in;
 
       // merge events with any that previously existed
       network.events = network.events || {};
