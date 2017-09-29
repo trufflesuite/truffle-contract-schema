@@ -6,6 +6,7 @@ var MetaCoin = require("./MetaCoin.json");
 
 describe("Schema", function() {
   it("validates correct input", function() {
+    assert(false);
     Schema.validate(MetaCoin)
   });
 
