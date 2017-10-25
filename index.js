@@ -97,7 +97,9 @@ var properties = {
       }
       return value;
     }
-  }
+  },
+  "devdoc": {},  
+  "userdoc": {},
 };
 
 
