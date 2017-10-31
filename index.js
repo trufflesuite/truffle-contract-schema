@@ -1,181 +1,223 @@
 var sha3 = require("crypto-js/sha3");
-var schema_version = require("./package.json").version;
+var pkgVersion = require("./package.json").version;
+var Ajv = require("ajv");
 
-var TruffleSchema = {
-  // Normalize options passed in to be the exact options required
-  // for truffle-contract.
-  //
-  // options can be three things:
-  // - normal object
-  // - contract object
-  // - solc output
-  //
-  // TODO: Is extra_options still necessary?
-  normalizeOptions: function(options, extra_options) {
-    extra_options = extra_options || {};
-    var normalized = {};
-    var expected_keys = [
-      "contract_name",
-      "abi",
-      "binary",
-      "unlinked_binary",
-      "address",
-      "networks",
-      "links",
-      "events",
-      "network_id",
-      "default_network",
-      "updated_at"
-    ];
+var contractObjectSchema = require("./spec/contract-object.spec.json");
+var networkObjectSchema = require("./spec/network-object.spec.json");
+var abiSchema = require("./spec/abi.spec.json");
 
-    // Merge options/contract object first, then extra_options
-    expected_keys.forEach(function(key) {
-      var value;
 
-      try {
-        // Will throw an error if key == address and address doesn't exist.
-        value = options[key];
-
-        if (value != undefined) {
-          normalized[key] = value;
-        }
-      } catch (e) {
-        // Do nothing.
-      }
-
-      try {
-        // Will throw an error if key == address and address doesn't exist.
-        value = extra_options[key];
-
-        if (value != undefined) {
-          normalized[key] = value;
-        }
-      } catch (e) {
-        // Do nothing.
-      }
-    });
-
-    // Now look for solc specific items.
-    if (options.interface != null) {
-      normalized.abi = JSON.parse(options.interface);
-    }
-
-    if (options.bytecode != null) {
-      normalized.unlinked_binary = options.bytecode
-    }
-
-    // Assume any binary passed is the unlinked binary
-    if (normalized.unlinked_binary == null && normalized.binary) {
-      normalized.unlinked_binary = normalized.binary;
-    }
-
-    delete normalized.binary;
-
-    this.copyCustomOptions(options, normalized);
-
-    return normalized;
+/**
+ * Property definitions for Contract Objects
+ *
+ * Describes canonical output properties as sourced from some "dirty" input
+ * object. Describes normalization process to account for deprecated and/or
+ * nonstandard keys and values.
+ *
+ * Maps (key -> property) where:
+ *  - `key` is the top-level output key matching up with those in the schema
+ *  - `property` is an object with optional values:
+ *      - `sources`: list of sources (see below); default `key`
+ *      - `transform`: function(value) -> transformed value; default x -> x
+ *
+ * Each source represents a means to select a value from dirty object.
+ * Allows:
+ *  - dot-separated (`.`) string, corresponding to path to value in dirty
+ *    object
+ *  - function(dirtyObj) -> (cleanValue | undefined)
+ *
+ * The optional `transform` parameter standardizes value regardless of source,
+ * for purposes of ensuring data type and/or string schemas.
+ */
+var properties = {
+  "contractName": {
+    "sources": ["contractName", "contract_name"]
   },
-
-  // Generate a proper binary from normalized options, and optionally
-  // merge it with an existing binary.
-  generateBinary: function(options, existing_binary, extra_options) {
-    extra_options = extra_options || {};
-
-    existing_binary = existing_binary || {};
-
-    if (options.overwrite == true) {
-      existing_binary = {};
-    }
-
-    existing_binary.contract_name = options.contract_name || existing_binary.contract_name || "Contract";
-    existing_binary.default_network = options.default_network || existing_binary.default_network;
-
-    existing_binary.abi = options.abi || existing_binary.abi;
-    existing_binary.unlinked_binary = options.unlinked_binary || existing_binary.unlinked_binary;
-
-    // Ensure unlinked binary starts with a 0x
-    if (existing_binary.unlinked_binary && existing_binary.unlinked_binary.indexOf("0x") < 0) {
-      existing_binary.unlinked_binary = "0x" + existing_binary.unlinked_binary;
-    }
-
-    // Merge existing networks with any passed in networks.
-    existing_binary.networks = existing_binary.networks || {};
-    options.networks = options.networks || {};
-    Object.keys(options.networks).forEach(function(network_id) {
-      existing_binary.networks[network_id] = options.networks[network_id];
-    });
-
-    var updated_at = new Date().getTime();
-
-    if (options.network_id) {
-      // Ensure an object exists for this network.
-      existing_binary.networks[options.network_id] = existing_binary.networks[options.network_id] || {};
-
-      var network = existing_binary.networks[options.network_id];
-
-      // Override specific keys
-      network.address = options.address || network.address;
-      network.links = options.links;
-
-      // merge events with any that previously existed
-      network.events = network.events || {};
-      options.events = options.events || {};
-      Object.keys(options.events).forEach(function(event_id) {
-        options.events[event_id] = options.events[event_id];
-      });
-
-      // Now overwrite any events with the most recent data from the ABI.
-      existing_binary.abi.forEach(function(item) {
-        if (item.type != "event") return;
-
-        var signature = item.name + "(" + item.inputs.map(function(param) {return param.type;}).join(",") + ")";
-        network.events["0x" + sha3(signature, {outputLength: 256})] = item;
-      });
-
-      if (extra_options.dirty !== false) {
-        network.updated_at = updated_at;
-      }
-    } else {
-      if (options.address) {
-        throw new Error("Cannot set address without network id");
-      }
-    }
-
-    // Ensure all networks have a `links` object.
-    Object.keys(existing_binary.networks).forEach(function(network_id) {
-      var network = existing_binary.networks[network_id];
-      network.links = network.links || {};
-    });
-
-    existing_binary.schema_version = schema_version;
-
-    if (extra_options.dirty !== false) {
-      existing_binary.updated_at = updated_at;
-    } else {
-      existing_binary.updated_at = options.updated_at || existing_binary.updated_at || updated_at;
-    }
-
-    this.copyCustomOptions(options, existing_binary);
-
-    return existing_binary;
-  },
-
-  copyCustomOptions: function(from, to) {
-    // Now let all x- options through.
-    Object.keys(from).forEach(function(key) {
-      if (key.indexOf("x-") != 0) return;
-
-      try {
-        value = from[key];
-
-        if (value != undefined) {
-          to[key] = value;
+  "abi": {
+    "sources": ["abi", "interface"],
+    "transform": function(value) {
+      if (typeof value === "string") {
+        try {
+          value = JSON.parse(value)
+        } catch (e) {
+          value = undefined;
         }
-      } catch (e) {
-        // Do nothing.
       }
-    });
+      return value;
+    }
+  },
+  "bytecode": {
+    "sources": [
+      "bytecode", "binary", "unlinked_binary", "evm.bytecode.object"
+    ],
+    "transform": function(value) {
+      if (value && value.indexOf("0x") != 0) {
+        value = "0x" + value;
+      }
+      return value;
+    }
+  },
+  "deployedBytecode": {
+    "sources": [
+      "deployedBytecode", "runtimeBytecode", "evm.deployedBytecode.object"
+    ],
+    "transform": function(value) {
+      if (value && value.indexOf("0x") != 0) {
+        value = "0x" + value;
+      }
+      return value;
+    }
+  },
+  "sourceMap": {
+    "sources": ["sourceMap", "srcmap", "evm.bytecode.sourceMap"]
+  },
+  "deployedSourceMap": {
+    "sources": ["deployedSourceMap", "srcmapRuntime", "evm.deployedBytecode.sourceMap"]
+  },
+  "source": {},
+  "sourcePath": {},
+  "ast": {},
+  "compiler": {},
+  "networks": {
+    "transform": function(value) {
+      if (value === undefined) {
+        value = {}
+      }
+      return value;
+    }
+  },
+  "schemaVersion": {
+    "sources": ["schemaVersion", "schema_version"]
+  },
+  "updatedAt": {
+    "sources": ["updatedAt", "updated_at"],
+    "transform": function(value) {
+      if (typeof value === "number") {
+        value = new Date(value).toISOString();
+      }
+      return value;
+    }
   }
 };
 
-module.exports = TruffleSchema;
+
+/**
+ * Construct a getter for a given key, possibly applying some post-retrieve
+ * transformation on the resulting value.
+ *
+ * @return {Function} Accepting dirty object and returning value || undefined
+ */
+function getter(key, transform) {
+  if (transform === undefined) {
+    transform = function(x) { return x };
+  }
+
+  return function(obj) {
+    try {
+      return transform(obj[key]);
+    } catch (e) {
+      return undefined;
+    }
+  }
+}
+
+
+/**
+ * Chains together a series of function(obj) -> value, passing resulting
+ * returned value to next function in chain.
+ *
+ * Accepts any number of functions passed as arguments
+ * @return {Function} Accepting initial object, returning end-of-chain value
+ *
+ * Assumes all intermediary values to be objects, with well-formed sequence
+ * of operations.
+ */
+function chain() {
+  var getters = Array.prototype.slice.call(arguments);
+  return function(obj) {
+    return getters.reduce(function (cur, get) {
+      return get(cur);
+    }, obj);
+  }
+}
+
+
+// Schema module
+//
+
+var TruffleContractSchema = {
+  // Return a promise to validate a contract object
+  // - Resolves as validated `contractObj`
+  // - Rejects with list of errors from schema validator
+  validate: function(contractObj) {
+    var ajv = new Ajv({ useDefaults: true });
+    ajv.addSchema(abiSchema);
+    ajv.addSchema(networkObjectSchema);
+    ajv.addSchema(contractObjectSchema);
+    if (ajv.validate("contract-object.spec.json", contractObj)) {
+      return contractObj;
+    } else {
+      throw ajv.errors;
+    }
+  },
+
+  // accepts as argument anything that can be turned into a contract object
+  // returns a contract object
+  normalize: function(objDirty, options) {
+    options = options || {};
+    var normalized = {};
+
+    // iterate over each property
+    Object.keys(properties).forEach(function(key) {
+      var property = properties[key];
+      var value;  // normalized value || undefined
+
+      // either used the defined sources or assume the key will only ever be
+      // listed as its canonical name (itself)
+      var sources = property.sources || [key];
+
+      // iterate over sources until value is defined or end of list met
+      for (var i = 0; value === undefined && i < sources.length; i++) {
+        var source = sources[i];
+        // string refers to path to value in objDirty, split and chain
+        // getters
+        if (typeof source === "string") {
+          var traversals = source.split(".")
+            .map(function(k) { return getter(k) });
+          source = chain.apply(null, traversals);
+        }
+
+        // source should be a function that takes the objDirty and returns
+        // value or undefined
+        value = source(objDirty);
+      }
+
+      // run source-agnostic transform on value
+      // (e.g. make sure bytecode begins 0x)
+      if (property.transform) {
+        value = property.transform(value);
+      }
+
+      // add resulting (possibly undefined) to normalized obj
+      normalized[key] = value;
+    });
+
+    // Copy x- options
+    Object.keys(objDirty).forEach(function(key) {
+      if (key.indexOf("x-") === 0) {
+        normalized[key] = getter(key)(objDirty);
+      }
+    });
+
+    // update schema version
+    normalized.schemaVersion = pkgVersion;
+
+    if (options.validate) {
+      this.validate(normalized);
+    }
+
+    return normalized
+  }
+};
+
+module.exports = TruffleContractSchema;
