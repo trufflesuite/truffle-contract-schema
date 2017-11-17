@@ -97,6 +97,15 @@ var properties = {
       }
       return value;
     }
+  },
+  "transactionId": {
+    "sources": ["transactionHash"],
+    "transform": function(value) {
+      if (value && value.indexOf("0x") != 0) {
+        value = "0x" + value;
+      }
+      return value;
+    }
   }
 };
 
