@@ -6,10 +6,7 @@
   "type": "object",
   "properties": {
     "address": { "$ref": "#/definitions/Address" },
-    "transactionId": {
-      "type": "string",
-      "pattern": "^0x[a-fA-F0-9]{64}$"
-    },
+    "transactionId": { "$ref": "#/definitions/Transaction" },
     "events": {
       "type": "object",
       "patternProperties": {
@@ -31,6 +28,11 @@
     "Address": {
       "type": "string",
       "pattern": "^0x[a-fA-F0-9]{40}$"
+    },
+
+    "Transaction": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{64}$"
     },
 
     "Link": {
