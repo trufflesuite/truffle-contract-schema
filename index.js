@@ -79,9 +79,13 @@ var properties = {
   "ast": {},
   "legacyAST": {
     "transform": function(value, obj) {
+      var schemaVersion = obj.schemaVersion || "0.0.0";
+
       // legacyAST introduced in v2.0.0
-      if (obj.schemaVersion[0] < 2) {
+      if (schemaVersion[0] < 2) {
         return obj.ast;
+      } else {
+        return value
       }
     }
   },
