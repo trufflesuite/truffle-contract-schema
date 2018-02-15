@@ -6,7 +6,7 @@
   "type": "object",
   "properties": {
     "address": { "$ref": "#/definitions/Address" },
-    "transactionId": { "$ref": "#/definitions/TransactionID" },
+    "transactionHash": { "$ref": "#/definitions/TransactionHash" },
     "events": {
       "type": "object",
       "patternProperties": {
@@ -30,7 +30,7 @@
       "pattern": "^0x[a-fA-F0-9]{40}$"
     },
 
-    "TransactionID": {
+    "TransactionHash": {
       "type": "string",
       "pattern": "^0x[a-fA-F0-9]{64}$"
     },
