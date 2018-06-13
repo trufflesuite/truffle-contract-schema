@@ -1,5 +1,12 @@
 # Schema Description: Truffle Contract Object
 
+-----------------------
+
+### :warning: This repo is deprecated :warning:
+**Truffle has moved all modules to a monorepo at [trufflesuite/truffle](https://github.com/trufflesuite/truffle). See you over there!**
+
+-----------------------
+
 | type | _object_ |
 | ---: | ---- |
 | JSON Schema | [contract-object.spec.json](spec/contract-object.spec.json) |
