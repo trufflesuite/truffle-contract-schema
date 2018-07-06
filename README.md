@@ -157,7 +157,7 @@ Version of this schema used by contract object representation.
 
 | type | _string_ |
 | ---: | ---- |
-| format | IS0-8601 Datetime |
+| type | IS0-8601 Datetime |
 
 
 Time at which contract object representation was generated/most recently
@@ -172,6 +172,15 @@ updated.
 Listing of contract instances. Object mapping network ID keys to network object
 values. Includes address information, links to other contract instances, and/or
 contract event logs.
+
+### `transactionId`
+
+| type | _string_ |
+| ---: | ---- |
+| pattern | ^0x[a-fA-F0-9]{64}$ |
+
+
+The hash of the transaction.
 
 #### Properties (key matching `^[a-zA-Z0-9]+$`)
 
